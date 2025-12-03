@@ -18,3 +18,37 @@ Now for generating cert for my local nginx web server.
 # 2048-bit RSA server key
 openssl genrsa -out myapp.local.key 2048
 
+create file named, csr_myapp_local.cnf
+
+
+[ req ]
+default_bits       = 2048
+prompt             = no
+default_md         = sha256
+req_extensions     = req_ext
+distinguished_name = dn
+
+[ dn ]
+C  = US
+ST = SomeState
+L  = SomeCity
+O  = My Lab
+OU = Dev
+CN = myapp.local
+
+[ req_ext ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+DNS.1 = myapp.local
+
+Then create the actual CSR
+openssl req \
+  -new \
+  -key myapp.local.key \
+  -out myapp.local.csr \
+  -config csr_myapp_local.cnf
+
+
+
+openssl x509 -req -in myapp.local.csr -CA myCA.pem -CAkey myCA.key -CAcreateserial -out detrick.test.crt -days 825 -sha256 -extfile detrick.test.ext
