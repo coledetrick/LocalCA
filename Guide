@@ -1,3 +1,5 @@
 Install OpenSSL
 make directory for cert
 openssl genrsa -des3 -out myCA.key 2048
+Create passphrase.
+
