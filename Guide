@@ -12,3 +12,9 @@ sudo cp ~/certs/myCA.pem /usr/local/share/ca-certificates/myCA.crt
 
 update certs
 sudo update-ca-certificates
+
+Now for generating cert for my local nginx web server.
+
+# 2048-bit RSA server key
+openssl genrsa -out myapp.local.key 2048
+
