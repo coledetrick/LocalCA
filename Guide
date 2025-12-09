@@ -103,3 +103,61 @@ The new certificate is valid for 825 days (the current maximum recommended lifet
 Use the SHA-256 hashing algorithm for the signature.
 -extfile detrick.test.ext
 Load certificate extensions from this file.
+
+
+sudo mkdir -p /etc/nginx/ssl
+
+# adjust paths if your files are elsewhere
+sudo cp myapp.key /etc/nginx/ssl/
+sudo cp myapp.crt /etc/nginx/ssl/
+sudo cp myCA.pem  /etc/nginx/ssl/
+
+
+cd /etc/nginx/ssl
+sudo chown root:root myapp.key myapp.crt myCA.pem
+sudo chmod 600 myapp.key        # key is sensitive
+sudo chmod 644 myapp.crt myCA.pem
+
+
+cd /etc/nginx/ssl
+sudo bash -c 'cat myapp.crt myCA.pem > myapp.fullchain.crt'
+
+server {
+    listen 443 ssl;
+    server_name detrick.test;   # or whatever hostname is in your cert's SAN
+
+    ssl_certificate     /etc/nginx/ssl/myapp.fullchain.crt;
+    ssl_certificate_key /etc/nginx/ssl/myapp.key;
+
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+
+    root /var/www/myapp;
+    index index.html index.htm;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
+
+# Optional HTTP → HTTPS redirect
+server {
+    listen 80;
+    server_name detrick.test;
+    return 301 https://$host$request_uri;
+}
+
+sudo nginx -t
+sudo systemctl reload nginx
+
+sudo nano /etc/hosts
+127.0.0.1 = myapp.local #your SAN
+
+for firefox you must go to 
+Firefox → Settings -> search for certificates -> Authorities -> Import -> select your .pem file.
+
+restart your browser
+
+Hello from HTTPS!
+
+
