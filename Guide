@@ -1,25 +1,53 @@
 Install OpenSSL
 make directory for cert
+
+**Generates a new RSA private key and saves it to myCA.key**
 openssl genrsa -des3 -out myCA.key 2048
-Create passphrase.
+genrsa — Generate an RSA private key.
+-des3 — Encrypt the key with Triple-DES, so you'll be prompted for a passphrase.
+-out myCA.key — Write the key to this file.
+2048 — Key size in bits 
+
+Create PEM passphrase.
+- Password to unencrypt PEM file that protects the private key inside the PEM file.
+
 
 openssl req -x509 -new -nodes -key myCA.key -sha256 -days 1825 -out myCA.pem
+- creates a self-signed certificate as myCA.pem
+- req
+Use OpenSSL’s certificate request and certificate creation tool.
+-x509
+Output a self-signed X.509 certificate instead of a certificate signing request (CSR).
+-new
+Indicate that a new certificate is being created.
+-nodes
+This flag suppresses encryption prompts.
+-key myCA.key
+Use this existing private key to sign the certificate.
+-sha256
+Sign the certificate using the SHA-256 hashing algorithm.
+-days 1825
+Make the certificate valid for 30 days
+-out myCA.pem
+Save the final certificate to this file.
 
-Fill in all information.
+
+Fill in all the information.
 
 copy file here as .crt
 sudo cp ~/certs/myCA.pem /usr/local/share/ca-certificates/myCA.crt
+- This copies your .pem file to the system’s trusted certificate directory, renaming it to myCA.crt as it's copied.
 
-update certs
+update certs now that you added your cert to the directory.
 sudo update-ca-certificates
 
 Now for generating cert for my local nginx web server.
 
-# 2048-bit RSA server key
+# generates a 2048-bit RSA server key to be used as the cert for my nginx web server and to be signed by my own CA.
 openssl genrsa -out myapp.local.key 2048
 
 create file named, csr_myapp_local.cnf
-
+- This fills in the X.509 subject fields automatically
 
 [ req ]
 default_bits       = 2048
@@ -43,12 +71,35 @@ subjectAltName = @alt_names
 DNS.1 = myapp.local
 
 Then create the actual CSR
-openssl req \
-  -new \
-  -key myapp.local.key \
-  -out myapp.local.csr \
-  -config csr_myapp_local.cnf
+openssl req -new -key myapp.local.key -out myapp.local.csr -config csr_myapp_local.cnf
 
 
 
-openssl x509 -req -in myapp.local.csr -CA myCA.pem -CAkey myCA.key -CAcreateserial -out detrick.test.crt -days 825 -sha256 -extfile detrick.test.ext
+Sign your CSR with your CA, 
+openssl x509 -req -in myapp.local.csr -CA myCA.pem -CAkey myCA.key -CAcreateserial -out detrick.test.crt -days 825 -sha256 -extfile csr_myapp_local.cnf -extensions req_ext
+
+openssl x509
+Use OpenSSL’s X.509 certificate tool (for creating, signing, displaying certificates).
+-req
+Tell OpenSSL that you're signing a Certificate Signing Request (CSR).
+-in myapp.local.csr
+This is the CSR being signed.
+It contains:
+the public key,
+the subject information (CN, SANs, etc.),
+and is signed using its private key.
+-CA myCA.pem
+The CA certificate used to sign the new certificate.
+-CAkey myCA.key
+The CA’s private key used to actually perform the digital signature.
+-CAcreateserial
+If a file like myCA.srl does not exist, create it.
+This file tracks certificate serial numbers so each certificate gets a unique serial.
+-out detrick.test.crt
+This is the final signed certificate you’re generating.
+-days 825
+The new certificate is valid for 825 days (the current maximum recommended lifetime for public TLS certificates).
+-sha256
+Use the SHA-256 hashing algorithm for the signature.
+-extfile detrick.test.ext
+Load certificate extensions from this file.
